@@ -74,48 +74,30 @@ export function TopicPool({
             className="pl-8"
           />
         </div>
-        <Select
-          value={category}
-          onValueChange={(v) => setCategory(v as CategoryId | "all")}
-        >
-          <SelectTrigger size="sm" className="w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          {filtered.length} of {all.length} topics
-        </p>
-        <div className="flex flex-wrap gap-1">
-          {categories.slice(0, 8).map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setCategory(category === c.id ? "all" : c.id)}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-                category === c.id
-                  ? cn(c.bg, c.text, c.border)
-                  : "border-border text-muted-foreground hover:bg-accent",
-              )}
-              title={c.label}
-            >
-              <CategoryIcon name={c.icon} className="size-2.5" />
-              {c.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+          <p className="text-xs text-muted-foreground whitespace-nowrap">
+            {filtered.length} of {all.length} topics
+          </p>
+          <Select
+            value={category}
+            onValueChange={(v) => setCategory(v as CategoryId | "all")}
+          >
+            <SelectTrigger size="sm" className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
+
+
 
       <div className="flex flex-col rounded-lg border">
         <ul className="divide-y">
