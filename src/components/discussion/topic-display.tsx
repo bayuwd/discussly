@@ -99,7 +99,7 @@ export function TopicDisplay({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
-                className="flex h-full flex-col justify-center gap-4"
+                className="flex h-full w-full flex-col justify-center gap-4 overflow-hidden"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <CategoryBadge category={topic.category} />
@@ -133,7 +133,7 @@ export function TopicDisplay({
                     </div>
                   )}
                 </div>
-                <blockquote className="text-pretty text-2xl font-semibold leading-snug sm:text-3xl break-words whitespace-pre-wrap">
+                <blockquote className="text-pretty text-xl sm:text-2xl font-semibold leading-snug break-words whitespace-pre-wrap max-w-full">
                   &ldquo;{topic.text}&rdquo;
                 </blockquote>
               </motion.div>
@@ -159,13 +159,13 @@ export function TopicDisplay({
           </AnimatePresence>
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button
               size="lg"
               onClick={onGenerate}
               disabled={isGenerating || isAIGenerating}
-              className="bg-emerald-600 text-white hover:bg-emerald-500"
+              className="bg-emerald-600 text-white hover:bg-emerald-500 flex-1 sm:flex-none"
             >
               {isGenerating ? (
                 <RefreshCw className="size-4 animate-spin" />
@@ -181,6 +181,7 @@ export function TopicDisplay({
                 size="lg"
                 onClick={onToggleFavorite}
                 aria-pressed={isFavorite}
+                className="flex-1 sm:flex-none"
                 aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
               >
                 <Star
@@ -195,12 +196,12 @@ export function TopicDisplay({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Input
               placeholder="Topic keyword..."
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
-              className="w-36 sm:w-48 bg-background/50"
+              className="flex-1 sm:w-48 bg-background/50 min-w-0"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && aiPrompt.trim()) {
                   onGenerateAI(aiPrompt.trim());
@@ -218,6 +219,7 @@ export function TopicDisplay({
                 }
               }}
               disabled={isGenerating || isAIGenerating || !aiPrompt.trim()}
+              className="flex-shrink-0"
             >
               {isAIGenerating ? (
                 <RefreshCw className="size-4 animate-spin" />
