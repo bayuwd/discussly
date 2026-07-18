@@ -1,0 +1,29 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Topics manually added by the user (the curated/prebuilt topics live in lib/topics.ts)
+model CustomTopic {
+  id        String   @id @default(cuid())
+  text      String
+  category  String
+  createdAt DateTime @default(now())
+}
+
+// Record of completed (or stopped) discussion sessions
+model DiscussionHistory {
+  id          String   @id @default(cuid())
+  topicText   String
+  category    String
+  durationSec Int
+  elapsedSec  Int
+  completedAt DateTime @default(now())
+}
