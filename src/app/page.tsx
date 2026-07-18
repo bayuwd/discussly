@@ -60,93 +60,57 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
   const [isAIGenerating, setIsAIGenerating] = React.useState(false);
   const [randomCategory, setRandomCategory] = React.useState<CategoryId | "all">("all");
   const [tab, setTab] = React.useState("pool");
+  const [customTopics, setCustomTopics] = React.useState<Topic[]>([]);
 
   // ---------- Server data ----------
-  const topicsQuery = useQuery({
-    queryKey: ["topics"],
-    queryFn: async () => {
-      const res = await fetch("/api/topics");
-      const data = await res.json();
-      return data.topics as Topic[];
-    },
-  });
 
-  const historyQuery = useQuery({
-    queryKey: ["history"],
-    queryFn: async () => {
-      const res = await fetch("/api/history");
-      const data = await res.json();
-      return data.history as HistoryEntry[];
-    },
-  });
+  const [history, setHistory] = React.useState<HistoryEntry[]>([]);
+  const [customCategories, setCustomCategories] = React.useState<any[]>([]);
 
-  const categoriesQuery = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const res = await fetch("/api/categories");
-      const data = await res.json();
+  const rawCategories = React.useMemo(() => [...CATEGORIES, ...customCategories], [customCategories]);
+
+  const categoryStats = React.useMemo(() => {
+    return rawCategories.map((cat: any) => {
+      const prebuiltCount = PREBUILT_TOPICS.filter((t) => t.category === cat.id).length;
+      const customCount = customTopics.filter((t) => t.category === cat.id).length;
       return {
-        stats: data.categories as CategoryStat[],
-        rawCategories: data.rawCategories as any[],
+        id: cat.id,
+        label: cat.label,
+        icon: cat.icon,
+        prebuiltCount,
+        customCount,
+        total: prebuiltCount + customCount,
       };
-    },
-  });
-
-  const customTopics = topicsQuery.data ?? [];
-  const history = historyQuery.data ?? [];
-  const categoryStats = categoriesQuery.data?.stats ?? [];
-  const rawCategories = categoriesQuery.data?.rawCategories ?? CATEGORIES;
+    });
+  }, [rawCategories, customTopics]);
 
   // ---------- Mutations ----------
-  const addTopicMutation = useMutation({
-    mutationFn: async (input: { text: string; category: CategoryId; spiciness?: number; tags?: string }) => {
-      const res = await fetch("/api/topics", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed to add topic");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["topics"] });
-      qc.invalidateQueries({ queryKey: ["categories"] });
-    },
-  });
 
   const addCategoryMutation = useMutation({
     mutationFn: async (input: { label: string }) => {
-      const res = await fetch("/api/categories/custom", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed to add category");
+      const label = input.label.trim();
+      if (!label) throw new Error("Label is required.");
+      if (label.length > 50) throw new Error("Label must be 50 characters or fewer.");
+      const baseId = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+      const id = `custom-${baseId}-${Math.random().toString(36).slice(2, 8)}`;
+      if (rawCategories.some((c) => c.id === id)) {
+        throw new Error("Invalid category ID.");
       }
-      return res.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["categories"] });
+      const newCategory = {
+        id,
+        label,
+        description: "Custom category",
+        text: "text-fuchsia-600 dark:text-fuchsia-400",
+        bg: "bg-fuchsia-500/10",
+        border: "border-fuchsia-500/30",
+        dot: "bg-fuchsia-500",
+        icon: "Sparkles",
+      };
+      setCustomCategories((prev) => [...prev, newCategory]);
+      return newCategory;
     },
   });
 
-  const deleteTopicMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/topics/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete topic");
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["topics"] });
-      qc.invalidateQueries({ queryKey: ["categories"] });
-    },
-  });
 
   const recordHistoryMutation = useMutation({
     mutationFn: async (input: {
@@ -155,36 +119,27 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
       durationSec: number;
       elapsedSec: number;
     }) => {
-      const res = await fetch("/api/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      if (!res.ok) throw new Error("Failed to record session");
-      return res.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["history"] });
+      const newEntry = {
+        id: Math.random().toString(36).slice(2, 10),
+        ...input,
+        completedAt: new Date().toISOString(),
+      };
+      setHistory((prev) => [newEntry, ...prev]);
+      return newEntry;
     },
   });
 
   const deleteHistoryMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/history?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete entry");
+      setHistory((prev) => prev.filter((entry) => entry.id !== id));
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["history"] }),
   });
 
   const clearHistoryMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/history", { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to clear history");
+      setHistory([]);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["history"] });
       toast.success("History cleared.");
     },
   });
@@ -238,21 +193,34 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
 
     setIsGenerating(true);
     try {
-      const url =
-        randomCategory === "all"
-          ? "/api/topics/random"
-          : `/api/topics/random?category=${randomCategory}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("fetch failed");
-      const topic: Topic = await res.json();
-      setCurrentTopic(topic);
+      // Small simulated delay for effect
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      let pool = [...PREBUILT_TOPICS, ...customTopics];
+      if (randomCategory !== "all") {
+        pool = pool.filter(t => t.category === randomCategory);
+      }
+      
+      if (pool.length === 0) {
+        throw new Error("No topics available in this category.");
+      }
+
+      let nextTopic = currentTopic;
+      if (pool.length > 1) {
+        while (nextTopic?.id === currentTopic?.id) {
+          nextTopic = pool[Math.floor(Math.random() * pool.length)];
+        }
+      } else {
+        nextTopic = pool[0];
+      }
+      
+      setCurrentTopic(nextTopic);
       timerRef.current.reset();
-    } catch {
-      toast.error("Couldn't generate a topic. Please try again.");
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't generate a topic. Please try again.");
     } finally {
       setIsGenerating(false);
     }
-  }, [currentTopic, randomCategory]);
+  }, [currentTopic, randomCategory, customTopics]);
 
   const generateAITopic = React.useCallback(async (prompt: string) => {
     // Save an in-flight session before switching topics.
@@ -337,24 +305,26 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
 
   const addTopic = React.useCallback(
     async (text: string, category: CategoryId, spiciness?: number, tags?: string) => {
-      try {
-        await addTopicMutation.mutateAsync({ text, category, spiciness, tags });
-        toast.success("Topic added to your library.");
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Couldn't add the topic.");
-      }
+      const newTopic: Topic = {
+        id: `custom-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        text,
+        category,
+        source: "custom",
+        spiciness,
+        tags: tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
+      };
+      setCustomTopics(prev => [newTopic, ...prev]);
+      toast.success("Topic added temporarily (will reset on reload).");
     },
-    [addTopicMutation],
+    [],
   );
 
   const deleteCustom = React.useCallback(
     (id: string) => {
-      deleteTopicMutation.mutate(id, {
-        onSuccess: () => toast.success("Custom topic removed."),
-        onError: () => toast.error("Couldn't delete the topic."),
-      });
+      setCustomTopics(prev => prev.filter(t => t.id !== id));
+      toast.success("Custom topic removed.");
     },
-    [deleteTopicMutation],
+    [],
   );
 
   const isFavorite = React.useCallback(
