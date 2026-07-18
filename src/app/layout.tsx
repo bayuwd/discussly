@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Discussly" }],
   icons: {
-    icon: "/logo.svg",
+    icon: "/logo.png",
   },
   openGraph: {
     title: "Discussly — Random Topic Generator & Discussion Timer",

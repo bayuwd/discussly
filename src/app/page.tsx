@@ -418,8 +418,11 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
       {/* Header */}
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Discussly Logo" className="size-10" />
+          <button 
+            onClick={() => window.location.reload()} 
+            className="flex items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md transition-opacity hover:opacity-80"
+          >
+            <img src="/logo.png" alt="Discussly Logo" className="size-10" />
             <div>
               <h1 className="text-base font-bold leading-tight sm:text-lg">
                 Discussly
@@ -428,7 +431,7 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
                 Random topic generator &amp; discussion timer
               </p>
             </div>
-          </div>
+          </button>
           <div className="flex items-center gap-2">
             {isMultiplayer ? (
               <>
