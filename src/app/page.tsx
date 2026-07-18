@@ -439,14 +439,14 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
                   <Users className="size-3" />
                   {othersCount + 1} online
                 </Badge>
-                <Button variant="outline" size="sm" onClick={handleLeaveRoom} className="hidden sm:inline-flex">
+                <Button variant="outline" size="sm" onClick={handleLeaveRoom}>
                   Leave
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setMultiplayerModalOpen(true)} className="hidden sm:inline-flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setMultiplayerModalOpen(true)} className="inline-flex gap-2">
                 <Users className="size-4 text-emerald-500" />
-                Multiplayer
+                <span className="hidden sm:inline">Multiplayer</span>
               </Button>
             )}
             <Badge
