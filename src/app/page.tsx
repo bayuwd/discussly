@@ -479,9 +479,10 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
             </p>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Left column */}
-            <div className="flex flex-col gap-6 lg:col-span-2">
+          {/* Main Layout Grid */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+            {/* Left Column (Primary Discussion Area) */}
+            <div className="lg:col-span-8 flex flex-col gap-6 min-w-0">
               <TopicDisplay
                 topic={currentTopic}
                 isGenerating={isGenerating}
@@ -559,8 +560,8 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
               </Card>
             </div>
 
-            {/* Right column: tabs */}
-            <div className="lg:col-span-1">
+            {/* Right Column (Side Panels) */}
+            <div className="lg:col-span-4 min-w-0">
               <Card className="p-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
                 <Tabs value={tab} onValueChange={setTab} className="gap-3">
                   <TabsList className="grid w-full grid-cols-3">
