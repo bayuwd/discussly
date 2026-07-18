@@ -4,7 +4,9 @@ import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shuffle, Star, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,22 +22,30 @@ import { cn } from "@/lib/utils";
 interface TopicDisplayProps {
   topic: Topic | null;
   isGenerating: boolean;
+  isAIGenerating: boolean;
   onGenerate: () => void;
+  onGenerateAI: (prompt: string) => void;
   randomCategory: CategoryId | "all";
   onRandomCategoryChange: (v: CategoryId | "all") => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  categories: any[];
 }
 
 export function TopicDisplay({
   topic,
   isGenerating,
+  isAIGenerating,
   onGenerate,
+  onGenerateAI,
   randomCategory,
   onRandomCategoryChange,
   isFavorite,
   onToggleFavorite,
+  categories,
 }: TopicDisplayProps) {
+  const [aiPrompt, setAiPrompt] = React.useState("");
+
   return (
     <Card className="relative overflow-hidden border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-card to-teal-500/5 p-0">
       {/* decorative glow */}
@@ -70,7 +80,7 @@ export function TopicDisplay({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">🎲 All categories</SelectItem>
-                {CATEGORIES.map((c) => (
+                {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.label}
                   </SelectItem>
@@ -96,15 +106,34 @@ export function TopicDisplay({
                   <span
                     className={cn(
                       "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                      topic.source === "custom"
+                      topic.source === "ai"
+                        ? "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                        : topic.source === "custom"
                         ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
                         : "border-muted-foreground/20 bg-muted text-muted-foreground",
                     )}
                   >
-                    {topic.source === "custom" ? "Your topic" : "Curated"}
+                    {topic.source === "ai" ? "AI Generated" : topic.source === "custom" ? "Your topic" : "Curated"}
                   </span>
+                  {topic.spiciness && topic.spiciness > 0 ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-red-600 dark:text-red-400"
+                      title="Spiciness"
+                    >
+                      Spiciness: {"🌶️".repeat(topic.spiciness)}
+                    </span>
+                  ) : null}
+                  {topic.tags && topic.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {topic.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="text-[10px] px-2 py-0">
+                          #{tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <blockquote className="text-pretty text-2xl font-semibold leading-snug sm:text-3xl">
+                <blockquote className="text-pretty text-2xl font-semibold leading-snug sm:text-3xl break-words whitespace-pre-wrap">
                   &ldquo;{topic.text}&rdquo;
                 </blockquote>
               </motion.div>
@@ -130,39 +159,75 @@ export function TopicDisplay({
           </AnimatePresence>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="lg"
-            onClick={onGenerate}
-            disabled={isGenerating}
-            className="bg-emerald-600 text-white hover:bg-emerald-500"
-          >
-            {isGenerating ? (
-              <RefreshCw className="size-4 animate-spin" />
-            ) : (
-              <Shuffle className="size-4" />
-            )}
-            {topic ? "Generate another" : "Generate a topic"}
-          </Button>
-
-          {topic && (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
-              variant="outline"
               size="lg"
-              onClick={onToggleFavorite}
-              aria-pressed={isFavorite}
-              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              onClick={onGenerate}
+              disabled={isGenerating || isAIGenerating}
+              className="bg-emerald-600 text-white hover:bg-emerald-500"
             >
-              <Star
-                className={cn(
-                  "size-4",
-                  isFavorite &&
-                    "fill-amber-400 text-amber-400",
-                )}
-              />
-              {isFavorite ? "Favorited" : "Favorite"}
+              {isGenerating ? (
+                <RefreshCw className="size-4 animate-spin" />
+              ) : (
+                <Shuffle className="size-4" />
+              )}
+              {topic ? "Generate another" : "Generate a topic"}
             </Button>
-          )}
+
+            {topic && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onToggleFavorite}
+                aria-pressed={isFavorite}
+                aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Star
+                  className={cn(
+                    "size-4",
+                    isFavorite &&
+                    "fill-amber-400 text-amber-400",
+                  )}
+                />
+                {isFavorite ? "Favorited" : "Favorite"}
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Topic keyword..."
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              className="w-36 sm:w-48 bg-background/50"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && aiPrompt.trim()) {
+                  onGenerateAI(aiPrompt.trim());
+                  setAiPrompt("");
+                }
+              }}
+            />
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => {
+                if (aiPrompt.trim()) {
+                  onGenerateAI(aiPrompt.trim());
+                  setAiPrompt("");
+                }
+              }}
+              disabled={isGenerating || isAIGenerating || !aiPrompt.trim()}
+            >
+              {isAIGenerating ? (
+                <RefreshCw className="size-4 animate-spin" />
+              ) : (
+                <Sparkles className="size-4 text-emerald-500" />
+              )}
+              <span className="hidden sm:inline">AI Topic</span>
+              <span className="sm:hidden">AI</span>
+            </Button>
+          </div>
         </div>
       </div>
     </Card>

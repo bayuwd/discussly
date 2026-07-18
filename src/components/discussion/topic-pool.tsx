@@ -5,7 +5,7 @@ import { Search, Star, Trash2, ArrowRight, Inbox } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import {
   Select,
   SelectContent,
@@ -24,6 +24,7 @@ interface TopicPoolProps {
   onDeleteCustom: (id: string) => void;
   isFavorite: (id: string) => boolean;
   onToggleFavorite: (id: string) => void;
+  categories: any[];
 }
 
 export function TopicPool({
@@ -32,9 +33,13 @@ export function TopicPool({
   onDeleteCustom,
   isFavorite,
   onToggleFavorite,
+  categories,
 }: TopicPoolProps) {
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<CategoryId | "all">("all");
+
+  const [page, setPage] = React.useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const all = React.useMemo(
     () => [...customTopics, ...PREBUILT_TOPICS],
@@ -49,6 +54,13 @@ export function TopicPool({
       return true;
     });
   }, [all, query, category]);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [query, category]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
     <div className="flex flex-col gap-3">
@@ -71,7 +83,7 @@ export function TopicPool({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.label}
               </SelectItem>
@@ -85,7 +97,7 @@ export function TopicPool({
           {filtered.length} of {all.length} topics
         </p>
         <div className="flex flex-wrap gap-1">
-          {CATEGORIES.slice(0, 8).map((c) => (
+          {categories.slice(0, 8).map((c) => (
             <button
               key={c.id}
               type="button"
@@ -105,77 +117,116 @@ export function TopicPool({
         </div>
       </div>
 
-      <ScrollArea className="max-h-[420px] rounded-lg border">
+      <div className="flex flex-col rounded-lg border">
         <ul className="divide-y">
-          {filtered.length === 0 && (
-            <li className="flex flex-col items-center gap-2 px-4 py-12 text-center text-sm text-muted-foreground">
-              <Inbox className="size-6" />
-              No topics match your search.
-            </li>
-          )}
-          {filtered.map((t) => {
-            const fav = isFavorite(t.id);
-            return (
-              <li
-                key={t.id}
-                className="group flex items-start gap-2 px-3 py-2.5 transition-colors hover:bg-accent/40"
-              >
-                <button
-                  type="button"
-                  onClick={() => onToggleFavorite(t.id)}
-                  className="mt-0.5 shrink-0 rounded-md p-1 transition-colors hover:bg-accent"
-                  aria-label={fav ? "Remove favorite" : "Add favorite"}
+            {paginated.length === 0 && (
+              <li className="flex flex-col items-center gap-2 px-4 py-12 text-center text-sm text-muted-foreground">
+                <Inbox className="size-6" />
+                No topics match your search.
+              </li>
+            )}
+            {paginated.map((t) => {
+              const fav = isFavorite(t.id);
+              return (
+                <li
+                  key={t.id}
+                  className="group flex items-start gap-2 px-3 py-2.5 transition-colors hover:bg-accent/40"
                 >
-                  <Star
-                    className={cn(
-                      "size-4",
-                      fav ? "fill-amber-400 text-amber-400" : "text-muted-foreground",
-                    )}
-                  />
-                </button>
-
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm leading-snug">{t.text}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                    <CategoryBadge category={t.category} />
-                    {t.source === "custom" && (
-                      <Badge
-                        variant="outline"
-                        className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400"
-                      >
-                        Custom
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    onClick={() => onUseTopic(t)}
-                    title="Use this topic"
+                  <button
+                    type="button"
+                    onClick={() => onToggleFavorite(t.id)}
+                    className="mt-0.5 shrink-0 rounded-md p-1 transition-colors hover:bg-accent"
+                    aria-label={fav ? "Remove favorite" : "Add favorite"}
                   >
-                    <ArrowRight className="size-4" />
-                  </Button>
-                  {t.source === "custom" && (
+                    <Star
+                      className={cn(
+                        "size-4",
+                        fav ? "fill-amber-400 text-amber-400" : "text-muted-foreground",
+                      )}
+                    />
+                  </button>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm leading-snug break-words whitespace-pre-wrap">{t.text}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <CategoryBadge category={t.category} />
+                      {t.source === "custom" && (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400"
+                        >
+                          Custom
+                        </Badge>
+                      )}
+                      {t.spiciness && t.spiciness > 0 ? (
+                        <span className="text-[10px]" title="Spiciness">
+                          {"🌶️".repeat(t.spiciness)}
+                        </span>
+                      ) : null}
+                      {t.tags && t.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {t.tags.map(tag => (
+                            <Badge key={tag} variant="secondary" className="text-[9px] px-1.5 py-0">
+                              #{tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="size-7 text-destructive hover:text-destructive"
-                      onClick={() => onDeleteCustom(t.id)}
-                      title="Delete custom topic"
+                      className="size-7"
+                      onClick={() => onUseTopic(t)}
+                      title="Use this topic"
                     >
-                      <Trash2 className="size-4" />
+                      <ArrowRight className="size-4" />
                     </Button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </ScrollArea>
+                    {t.source === "custom" && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 text-destructive hover:text-destructive"
+                        onClick={() => onDeleteCustom(t.id)}
+                        title="Delete custom topic"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        {filtered.length > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-between border-t px-3 py-2 text-xs">
+            <span className="text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

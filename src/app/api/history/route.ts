@@ -57,7 +57,15 @@ export async function POST(request: Request) {
   if (!topicText) {
     return NextResponse.json({ error: "topicText is required." }, { status: 400 });
   }
-  if (!CATEGORIES.some((c) => c.id === category)) {
+  const isValidPrebuilt = CATEGORIES.some((c) => c.id === category);
+  let isValidCategory = isValidPrebuilt;
+
+  if (!isValidCategory) {
+    const customCat = await db.customCategory.findUnique({ where: { id: category } });
+    isValidCategory = !!customCat;
+  }
+
+  if (!isValidCategory) {
     return NextResponse.json({ error: "Invalid category." }, { status: 400 });
   }
 

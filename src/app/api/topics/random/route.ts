@@ -16,11 +16,18 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category") as CategoryId | null;
 
-  const validCategory = category
+  let validCategory = category
     ? CATEGORIES.some((c) => c.id === category)
       ? category
       : null
     : null;
+
+  if (category && !validCategory) {
+    const customCat = await db.customCategory.findUnique({ where: { id: category } });
+    if (customCat) {
+      validCategory = category;
+    }
+  }
 
   // Fetch custom topics from the DB.
   let customTopics: Topic[] = [];
@@ -33,6 +40,8 @@ export async function GET(request: Request) {
       text: r.text,
       category: r.category as CategoryId,
       source: "custom",
+      spiciness: r.spiciness ?? undefined,
+      tags: r.tags ? r.tags.split(",").map((t) => t.trim()).filter(Boolean) : undefined,
     }));
   } catch {
     // DB not ready yet — degrade gracefully to prebuilt only.

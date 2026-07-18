@@ -15,7 +15,16 @@ model CustomTopic {
   id        String   @id @default(cuid())
   text      String
   category  String
+  spiciness Int?
+  tags      String?
   createdAt DateTime @default(now())
+}
+
+// Categories manually added by the user
+model CustomCategory {
+  id          String   @id
+  label       String
+  createdAt   DateTime @default(now())
 }
 
 // Record of completed (or stopped) discussion sessions

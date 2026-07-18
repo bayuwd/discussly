@@ -75,7 +75,7 @@ export function HistoryPanel({
                     <History className="size-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-snug">{h.topicText}</p>
+                    <p className="text-sm leading-snug break-words whitespace-pre-wrap">{h.topicText}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                       <CategoryBadge category={h.category} />
                       <span>·</span>

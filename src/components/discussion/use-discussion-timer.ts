@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useAppStore } from "@/lib/store";
 import type { TimerStatus } from "@/lib/store";
+import { useStorage, useMutation, useSelf } from "@liveblocks/react";
 
 export interface DiscussionTimerApi {
   durationSec: number;
@@ -14,7 +15,6 @@ export interface DiscussionTimerApi {
   pause: () => void;
   reset: () => void;
   setDurationSec: (sec: number) => void;
-  /** Record the current session to history and reset the timer. */
   finishNow: () => void;
 }
 
@@ -22,94 +22,115 @@ interface Options {
   onComplete: () => void;
 }
 
-/**
- * A wall-clock accurate countdown timer. While running it derives the
- * remaining time from `Date.now()` vs an end timestamp, so background-tab
- * throttling never drifts the clock.
- */
 export function useDiscussionTimer({
   onComplete,
 }: Options): DiscussionTimerApi {
   const soundEnabled = useAppStore((s) => s.soundEnabled);
   const defaultDurationSec = useAppStore((s) => s.defaultDurationSec);
+  const self = useSelf();
 
-  const [durationSec, setDurationSecState] = React.useState(defaultDurationSec);
-  const [remainingSec, setRemainingSec] = React.useState(defaultDurationSec);
-  const [status, setStatus] = React.useState<TimerStatus>("idle");
+  // Read shared state from Liveblocks
+  const status = useStorage((root) => root.timerStatus) ?? "idle";
+  const durationSec = useStorage((root) => root.timerDurationSec) ?? defaultDurationSec;
+  const endAt = useStorage((root) => root.timerEndAt);
+  const timerRemainingSec = useStorage((root) => root.timerRemainingSec);
+  const timerStarterId = useStorage((root) => root.timerStarterId);
 
-  const endAtRef = React.useRef<number | null>(null);
-  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  // We maintain a local remainingSec that ticks down while running.
+  // When idle or paused, we derive it from timerRemainingSec or durationSec.
+  const [localRemainingSec, setLocalRemainingSec] = React.useState(durationSec);
+  
   const completedRef = React.useRef(false);
   const onCompleteRef = React.useRef(onComplete);
+  
   React.useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
-  const clearTick = React.useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  // Handle local ticking when status is running
+  React.useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (status === "running" && endAt !== null) {
+      completedRef.current = false;
+      const tick = () => {
+        const remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+        setLocalRemainingSec(remaining);
+        
+        if (remaining <= 0 && !completedRef.current) {
+          completedRef.current = true;
+          // Only the user who started the timer triggers the onComplete 
+          // (which saves history) to prevent duplicate history entries.
+          // Other clients will still hear the beep (via useEffect below).
+          if (self?.connectionId === timerStarterId) {
+             onCompleteRef.current();
+          }
+        }
+      };
+      tick(); // initial tick
+      interval = setInterval(tick, 200);
+    } else {
+      // If idle, reset to duration. If paused, use the paused remaining sec.
+      if (status === "idle") {
+        setLocalRemainingSec(durationSec);
+        completedRef.current = false;
+      } else if (status === "paused" && timerRemainingSec !== null) {
+        setLocalRemainingSec(timerRemainingSec);
+      } else if (status === "finished") {
+        setLocalRemainingSec(0);
+      }
     }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [status, endAt, durationSec, timerRemainingSec, self?.connectionId, timerStarterId]);
+
+  // Mutations to update shared state
+  const start = useMutation(({ storage, self }: any) => {
+    const currentStatus = storage.get("timerStatus");
+    if (currentStatus === "finished") return;
+
+    const currentRem = storage.get("timerRemainingSec");
+    const currentDur = storage.get("timerDurationSec") ?? defaultDurationSec;
+    const remainingToUse = (currentStatus === "paused" && currentRem !== null) ? currentRem : currentDur;
+    
+    storage.set("timerEndAt", Date.now() + remainingToUse * 1000);
+    storage.set("timerStatus", "running");
+    storage.set("timerRemainingSec", null);
+    storage.set("timerStarterId", self.connectionId);
+  }, [defaultDurationSec]);
+
+  const pause = useMutation(({ storage }: any) => {
+    if (storage.get("timerStatus") !== "running") return;
+    const e = storage.get("timerEndAt");
+    const remaining = e ? Math.max(0, Math.round((e - Date.now()) / 1000)) : 0;
+    
+    storage.set("timerStatus", "paused");
+    storage.set("timerRemainingSec", remaining);
+    storage.set("timerEndAt", null);
   }, []);
 
-  const stop = React.useCallback(() => {
-    clearTick();
-    endAtRef.current = null;
-  }, [clearTick]);
+  const reset = useMutation(({ storage }: any) => {
+    storage.set("timerStatus", "idle");
+    storage.set("timerEndAt", null);
+    storage.set("timerRemainingSec", null);
+    // durationSec remains whatever it is globally
+  }, []);
 
-  const tick = React.useCallback(() => {
-    if (endAtRef.current == null) return;
-    const remaining = Math.max(
-      0,
-      Math.round((endAtRef.current - Date.now()) / 1000),
-    );
-    setRemainingSec(remaining);
-    if (remaining <= 0 && !completedRef.current) {
-      completedRef.current = true;
-      stop();
-      setStatus("finished");
-      onCompleteRef.current();
-    }
-  }, [stop]);
-
-  const start = React.useCallback(() => {
-    if (status === "finished") return;
-    // (re)compute end timestamp from the current remaining time
-    endAtRef.current = Date.now() + remainingSec * 1000;
-    setStatus("running");
-    clearTick();
-    intervalRef.current = setInterval(tick, 200);
-    tick();
-  }, [status, remainingSec, tick, clearTick]);
-
-  const pause = React.useCallback(() => {
-    if (status !== "running") return;
-    stop();
-    setStatus("paused");
-  }, [status, stop]);
-
-  const reset = React.useCallback(() => {
-    stop();
-    completedRef.current = false;
-    setRemainingSec(durationSec);
-    setStatus("idle");
-  }, [durationSec, stop]);
-
-  const setDurationSec = React.useCallback((sec: number) => {
+  const setDurationSec = useMutation(({ storage }: any, sec: number) => {
     const next = Math.max(10, Math.min(3600, Math.floor(sec)));
-    stop();
-    completedRef.current = false;
-    setDurationSecState(next);
-    setRemainingSec(next);
-    setStatus("idle");
-  }, [stop]);
+    storage.set("timerStatus", "idle");
+    storage.set("timerEndAt", null);
+    storage.set("timerRemainingSec", null);
+    storage.set("timerDurationSec", next);
+  }, []);
 
-  const finishNow = React.useCallback(() => {
-    stop();
-    completedRef.current = true;
-    setStatus("finished");
-    onCompleteRef.current();
-  }, [stop]);
+  const finishNow = useMutation(({ storage, self }: any) => {
+    storage.set("timerStatus", "finished");
+    storage.set("timerEndAt", null);
+    storage.set("timerRemainingSec", 0);
+    storage.set("timerStarterId", self.connectionId); // To ensure onComplete triggers for them if needed
+    onCompleteRef.current(); // Explicitly trigger for the user who clicked finishNow
+  }, []);
 
   // Play a short beep sequence when the timer finishes (Web Audio, no asset).
   const playBeep = React.useCallback(() => {
@@ -143,21 +164,18 @@ export function useDiscussionTimer({
     }
   }, [soundEnabled]);
 
-  // Trigger the beep + (the caller's onComplete handles history).
   React.useEffect(() => {
     if (status === "finished") {
       playBeep();
     }
   }, [status, playBeep]);
 
-  React.useEffect(() => () => stop(), [stop]);
-
-  const elapsedSec = Math.max(0, durationSec - remainingSec);
+  const elapsedSec = Math.max(0, durationSec - localRemainingSec);
   const progress = durationSec > 0 ? elapsedSec / durationSec : 0;
 
   return {
     durationSec,
-    remainingSec,
+    remainingSec: localRemainingSec,
     elapsedSec,
     status,
     progress,

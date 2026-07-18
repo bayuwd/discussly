@@ -138,6 +138,8 @@ export interface Topic {
   text: string;
   category: CategoryId;
   source: "prebuilt" | "custom";
+  spiciness?: number;
+  tags?: string[];
 }
 
 // The curated, prebuilt topic bank.
@@ -404,12 +406,19 @@ const RAW_TOPICS: Record<CategoryId, string[]> = {
 export const PREBUILT_TOPICS: Topic[] = (
   Object.keys(RAW_TOPICS) as CategoryId[]
 ).flatMap((category) =>
-  RAW_TOPICS[category].map((text, i) => ({
-    id: `prebuilt-${category}-${i}`,
-    text,
-    category,
-    source: "prebuilt" as const,
-  })),
+  RAW_TOPICS[category].map((text, i) => {
+    // Generate a stable pseudo-random spiciness level (between 1 and 3) for ALL topics
+    const hash = i + text.length;
+    const spiciness = (hash % 3) + 1;
+    
+    return {
+      id: `prebuilt-${category}-${i}`,
+      text,
+      category,
+      source: "prebuilt" as const,
+      spiciness,
+    };
+  }),
 );
 
 export const PREBUILT_COUNT = PREBUILT_TOPICS.length;

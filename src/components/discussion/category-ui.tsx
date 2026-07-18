@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Brain,
   Cpu,
@@ -46,7 +47,17 @@ export function CategoryBadge({
   category: string;
   className?: string;
 }) {
-  const meta = getCategoryMeta(category);
+  const queryClient = useQueryClient();
+  const data = queryClient.getQueryData(["categories"]) as any;
+  
+  // We expect data.rawCategories from our updated API.
+  const rawCategories = data?.rawCategories as any[];
+  let meta = rawCategories?.find(c => c.id === category);
+
+  if (!meta) {
+    meta = getCategoryMeta(category);
+  }
+
   return (
     <span
       className={cn(

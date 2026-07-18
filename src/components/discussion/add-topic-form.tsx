@@ -18,14 +18,20 @@ import type { CategoryId } from "@/lib/topics";
 import { cn } from "@/lib/utils";
 
 interface AddTopicFormProps {
-  onAdd: (text: string, category: CategoryId) => Promise<void>;
+  onAdd: (text: string, category: CategoryId, spiciness?: number, tags?: string) => Promise<void>;
   recentCount: number;
+  categories: any[];
+  onAddCategory: (label: string) => Promise<void>;
 }
 
-export function AddTopicForm({ onAdd, recentCount }: AddTopicFormProps) {
+export function AddTopicForm({ onAdd, recentCount, categories, onAddCategory }: AddTopicFormProps) {
   const [text, setText] = React.useState("");
   const [category, setCategory] = React.useState<CategoryId>("philosophy");
   const [submitting, setSubmitting] = React.useState(false);
+  const [newCatLabel, setNewCatLabel] = React.useState("");
+  const [creatingCat, setCreatingCat] = React.useState(false);
+  const [spiciness, setSpiciness] = React.useState<number>(0);
+  const [tags, setTags] = React.useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +39,24 @@ export function AddTopicForm({ onAdd, recentCount }: AddTopicFormProps) {
     if (!trimmed || submitting) return;
     setSubmitting(true);
     try {
-      await onAdd(trimmed, category);
+      await onAdd(trimmed, category, spiciness || undefined, tags.trim() || undefined);
       setText("");
+      setSpiciness(0);
+      setTags("");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    const label = newCatLabel.trim();
+    if (!label) return;
+    setCreatingCat(true);
+    try {
+      await onAddCategory(label);
+      setNewCatLabel("");
+    } finally {
+      setCreatingCat(false);
     }
   };
 
@@ -66,7 +86,7 @@ export function AddTopicForm({ onAdd, recentCount }: AddTopicFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 <span className="inline-flex items-center gap-2">
                   <CategoryIcon name={c.icon} className="size-4" />
@@ -78,9 +98,63 @@ export function AddTopicForm({ onAdd, recentCount }: AddTopicFormProps) {
         </Select>
       </div>
 
+      {/* Add new category inline */}
+      <div className="flex items-center gap-2">
+        <Input 
+          placeholder="New category name..." 
+          value={newCatLabel}
+          onChange={(e) => setNewCatLabel(e.target.value)}
+          className="h-8 text-xs"
+        />
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm" 
+          className="h-8 text-xs"
+          onClick={handleAddCategory}
+          disabled={!newCatLabel.trim() || creatingCat}
+        >
+          {creatingCat ? "Adding..." : "Add"}
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Spiciness</Label>
+        <div className="flex items-center gap-2">
+          {[1, 2, 3].map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => setSpiciness(spiciness === level ? 0 : level)}
+              className={cn(
+                "flex h-8 items-center justify-center rounded-md border px-3 text-sm transition-colors",
+                spiciness >= level
+                  ? "border-red-500/30 bg-red-500/10 text-red-500"
+                  : "border-border text-muted-foreground hover:bg-accent"
+              )}
+            >
+              🌶️
+            </button>
+          ))}
+          <span className="text-xs text-muted-foreground ml-2">
+            {spiciness === 0 ? "None" : spiciness === 1 ? "Mild" : spiciness === 2 ? "Spicy" : "Extra Spicy!"}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="tags">Tags (comma-separated)</Label>
+        <Input
+          id="tags"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="e.g. deep, funny, dating"
+        />
+      </div>
+
       {/* Category quick preview */}
       <div className="flex flex-wrap gap-1.5">
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <button
             key={c.id}
             type="button"

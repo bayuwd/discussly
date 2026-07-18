@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { MessageCircle, Shuffle, Sparkles, Timer as TimerIcon, Keyboard } from "lucide-react";
+import { MessageCircle, Shuffle, Sparkles, Timer as TimerIcon, Keyboard, Users } from "lucide-react";
+import { RoomProvider, ClientSideSuspense, useStorage, useMutation as useLiveblocksMutation, useUpdateMyPresence, useOthers } from "@liveblocks/react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { TopicPool } from "@/components/discussion/topic-pool";
 import { AddTopicForm } from "@/components/discussion/add-topic-form";
 import { HistoryPanel } from "@/components/discussion/history-panel";
 import { useDiscussionTimer } from "@/components/discussion/use-discussion-timer";
+import { LiveCursors } from "@/components/discussion/live-cursors";
 import { useAppStore } from "@/lib/store";
 import { PREBUILT_TOPICS, CATEGORIES } from "@/lib/topics";
 import type { Topic, CategoryId } from "@/lib/topics";
@@ -32,13 +34,22 @@ interface CategoryStat {
   prebuiltCount: number;
 }
 
-export default function Home() {
+export function HomeContent() {
   const qc = useQueryClient();
   const favorites = useAppStore((s) => s.favorites);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
 
-  const [currentTopic, setCurrentTopic] = React.useState<Topic | null>(null);
+  const currentTopic = useStorage((root) => root.topic);
+  const setCurrentTopic = useLiveblocksMutation(({ storage }: any, newTopic: Topic | null) => {
+    storage.set("topic", newTopic);
+  }, []);
+
+  const updateMyPresence = useUpdateMyPresence();
+  const others = useOthers();
+  const othersCount = others.length;
+
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [isAIGenerating, setIsAIGenerating] = React.useState(false);
   const [randomCategory, setRandomCategory] = React.useState<CategoryId | "all">("all");
   const [tab, setTab] = React.useState("pool");
 
@@ -66,17 +77,21 @@ export default function Home() {
     queryFn: async () => {
       const res = await fetch("/api/categories");
       const data = await res.json();
-      return data.categories as CategoryStat[];
+      return {
+        stats: data.categories as CategoryStat[],
+        rawCategories: data.rawCategories as any[],
+      };
     },
   });
 
   const customTopics = topicsQuery.data ?? [];
   const history = historyQuery.data ?? [];
-  const categoryStats = categoriesQuery.data ?? [];
+  const categoryStats = categoriesQuery.data?.stats ?? [];
+  const rawCategories = categoriesQuery.data?.rawCategories ?? CATEGORIES;
 
   // ---------- Mutations ----------
   const addTopicMutation = useMutation({
-    mutationFn: async (input: { text: string; category: CategoryId }) => {
+    mutationFn: async (input: { text: string; category: CategoryId; spiciness?: number; tags?: string }) => {
       const res = await fetch("/api/topics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -90,6 +105,24 @@ export default function Home() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["topics"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+
+  const addCategoryMutation = useMutation({
+    mutationFn: async (input: { label: string }) => {
+      const res = await fetch("/api/categories/custom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to add category");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["categories"] });
     },
   });
@@ -213,6 +246,43 @@ export default function Home() {
     }
   }, [currentTopic, randomCategory]);
 
+  const generateAITopic = React.useCallback(async (prompt: string) => {
+    // Save an in-flight session before switching topics.
+    if (
+      currentTopic &&
+      (timerRef.current.status === "running" ||
+        timerRef.current.status === "paused") &&
+      timerRef.current.elapsedSec > 3
+    ) {
+      recordHistoryMutation.mutate({
+        topicText: currentTopic.text,
+        category: currentTopic.category,
+        durationSec: timerRef.current.durationSec,
+        elapsedSec: timerRef.current.elapsedSec,
+      });
+    }
+
+    setIsAIGenerating(true);
+    try {
+      const res = await fetch("/api/topics/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "fetch failed");
+      }
+      const { topic } = await res.json();
+      setCurrentTopic(topic);
+      timerRef.current.reset();
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't generate a topic with AI. Please try again.");
+    } finally {
+      setIsAIGenerating(false);
+    }
+  }, [currentTopic]);
+
   const loadTopic = React.useCallback(
     (topic: Topic) => {
       if (
@@ -258,9 +328,9 @@ export default function Home() {
   }, [currentTopic]);
 
   const addTopic = React.useCallback(
-    async (text: string, category: CategoryId) => {
+    async (text: string, category: CategoryId, spiciness?: number, tags?: string) => {
       try {
-        await addTopicMutation.mutateAsync({ text, category });
+        await addTopicMutation.mutateAsync({ text, category, spiciness, tags });
         toast.success("Topic added to your library.");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Couldn't add the topic.");
@@ -323,14 +393,21 @@ export default function Home() {
   const totalTopics = PREBUILT_TOPICS.length + customTopics.length;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div 
+      className="flex min-h-screen flex-col bg-background relative overflow-hidden"
+      onPointerMove={(e) => {
+        updateMyPresence({ cursor: { x: Math.round(e.clientX), y: Math.round(e.clientY) } });
+      }}
+      onPointerLeave={() => {
+        updateMyPresence({ cursor: null });
+      }}
+    >
+      <LiveCursors />
       {/* Header */}
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3">
-            <span className="inline-flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
-              <MessageCircle className="size-5" />
-            </span>
+            <img src="/logo.svg" alt="Discussly Logo" className="size-10" />
             <div>
               <h1 className="text-base font-bold leading-tight sm:text-lg">
                 Discussly
@@ -341,6 +418,10 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Badge variant="outline" className="hidden bg-blue-500/10 text-blue-700 sm:inline-flex dark:text-blue-400 gap-1.5">
+              <Users className="size-3" />
+              {othersCount + 1} online
+            </Badge>
             <Badge
               variant="outline"
               className="hidden bg-emerald-500/10 text-emerald-700 sm:inline-flex dark:text-emerald-400"
@@ -374,13 +455,16 @@ export default function Home() {
               <TopicDisplay
                 topic={currentTopic}
                 isGenerating={isGenerating}
+                isAIGenerating={isAIGenerating}
                 onGenerate={() => void generateTopic()}
+                onGenerateAI={(prompt) => void generateAITopic(prompt)}
                 randomCategory={randomCategory}
                 onRandomCategoryChange={setRandomCategory}
                 isFavorite={currentTopic ? isFavorite(currentTopic.id) : false}
                 onToggleFavorite={() =>
                   currentTopic && onToggleFavorite(currentTopic.id)
                 }
+                categories={rawCategories}
               />
 
               <TimerPanel
@@ -404,7 +488,7 @@ export default function Home() {
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {CATEGORIES.map((c) => {
+                  {rawCategories.map((c) => {
                     const stat = categoryStats.find((s) => s.id === c.id);
                     const total = stat?.total ?? 0;
                     const active = randomCategory === c.id;
@@ -447,7 +531,7 @@ export default function Home() {
 
             {/* Right column: tabs */}
             <div className="lg:col-span-1">
-              <Card className="p-2 lg:sticky lg:top-20">
+              <Card className="p-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
                 <Tabs value={tab} onValueChange={setTab} className="gap-3">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="pool">
@@ -468,6 +552,7 @@ export default function Home() {
                       onDeleteCustom={deleteCustom}
                       isFavorite={isFavorite}
                       onToggleFavorite={onToggleFavorite}
+                      categories={rawCategories}
                     />
                   </TabsContent>
 
@@ -475,6 +560,15 @@ export default function Home() {
                     <AddTopicForm
                       onAdd={addTopic}
                       recentCount={customTopics.length}
+                      categories={rawCategories}
+                      onAddCategory={async (label) => {
+                        try {
+                          await addCategoryMutation.mutateAsync({ label });
+                          toast.success("Category added.");
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Couldn't add category.");
+                        }
+                      }}
                     />
                   </TabsContent>
 
@@ -523,6 +617,7 @@ export default function Home() {
           <p>
             Built for better conversations ·{" "}
             <span className="font-medium text-foreground">Discussly</span>
+            {" "}· Powered by FGDC
           </p>
           <p>
             {totalTopics} topics · {history.length} sessions logged
@@ -530,5 +625,19 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <RoomProvider 
+      id="discussly-global-room" 
+      initialPresence={{}} 
+      initialStorage={{ topic: null, timerEndAt: null, timerStatus: "idle", timerDurationSec: 180, timerRemainingSec: null, timerStarterId: null }}
+    >
+      <ClientSideSuspense fallback={<div className="flex min-h-screen items-center justify-center">Loading Room...</div>}>
+        <HomeContent />
+      </ClientSideSuspense>
+    </RoomProvider>
   );
 }
