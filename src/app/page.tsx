@@ -21,7 +21,7 @@ import { HistoryPanel } from "@/components/discussion/history-panel";
 import { useDiscussionTimer } from "@/components/discussion/use-discussion-timer";
 import { LiveCursors } from "@/components/discussion/live-cursors";
 import { MultiplayerModal } from "@/components/discussion/multiplayer-modal";
-import { useAppStore } from "@/lib/store";
+import { useAppStore, useEphemeralStore } from "@/lib/store";
 import { PREBUILT_TOPICS, CATEGORIES } from "@/lib/topics";
 import type { Topic, CategoryId } from "@/lib/topics";
 import type { HistoryEntry } from "@/app/api/history/route";
@@ -65,7 +65,8 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
   // ---------- Server data ----------
 
   const [history, setHistory] = React.useState<HistoryEntry[]>([]);
-  const [customCategories, setCustomCategories] = React.useState<any[]>([]);
+  const customCategories = useEphemeralStore(s => s.customCategories);
+  const setCustomCategories = useEphemeralStore(s => s.setCustomCategories);
 
   const rawCategories = React.useMemo(() => [...CATEGORIES, ...customCategories], [customCategories]);
 

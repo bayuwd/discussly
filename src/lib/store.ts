@@ -42,6 +42,16 @@ export const useAppStore = create<FavoritesState & SettingsState>()(
   ),
 );
 
+interface EphemeralState {
+  customCategories: any[];
+  setCustomCategories: (fn: (prev: any[]) => any[]) => void;
+}
+
+export const useEphemeralStore = create<EphemeralState>((set) => ({
+  customCategories: [],
+  setCustomCategories: (fn) => set((s) => ({ customCategories: fn(s.customCategories) })),
+}));
+
 // ---------- Helpers shared by the UI ----------
 
 export interface CategoryFilter {

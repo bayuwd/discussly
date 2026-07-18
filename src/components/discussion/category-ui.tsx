@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Brain,
   Cpu,
@@ -14,7 +13,8 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { getCategoryMeta } from "@/lib/topics";
+import { getCategoryMeta, CATEGORIES } from "@/lib/topics";
+import { useEphemeralStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -47,12 +47,10 @@ export function CategoryBadge({
   category: string;
   className?: string;
 }) {
-  const queryClient = useQueryClient();
-  const data = queryClient.getQueryData(["categories"]) as any;
+  const customCategories = useEphemeralStore((s) => s.customCategories);
+  const rawCategories = [...CATEGORIES, ...customCategories];
   
-  // We expect data.rawCategories from our updated API.
-  const rawCategories = data?.rawCategories as any[];
-  let meta = rawCategories?.find(c => c.id === category);
+  let meta = rawCategories.find(c => c.id === category);
 
   if (!meta) {
     meta = getCategoryMeta(category);
