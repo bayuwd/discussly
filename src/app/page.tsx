@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MessageCircle, Shuffle, Sparkles, Timer as TimerIcon, Keyboard, Users } from "lucide-react";
@@ -19,6 +20,7 @@ import { AddTopicForm } from "@/components/discussion/add-topic-form";
 import { HistoryPanel } from "@/components/discussion/history-panel";
 import { useDiscussionTimer } from "@/components/discussion/use-discussion-timer";
 import { LiveCursors } from "@/components/discussion/live-cursors";
+import { MultiplayerModal } from "@/components/discussion/multiplayer-modal";
 import { useAppStore } from "@/lib/store";
 import { PREBUILT_TOPICS, CATEGORIES } from "@/lib/topics";
 import type { Topic, CategoryId } from "@/lib/topics";
@@ -34,8 +36,14 @@ interface CategoryStat {
   prebuiltCount: number;
 }
 
-export function HomeContent() {
+export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolean, roomCode: string | null }) {
   const qc = useQueryClient();
+  const router = useRouter();
+  const [multiplayerModalOpen, setMultiplayerModalOpen] = React.useState(false);
+
+  const handleLeaveRoom = () => {
+    router.push("/");
+  };
   const favorites = useAppStore((s) => s.favorites);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
 
@@ -396,13 +404,17 @@ export function HomeContent() {
     <div 
       className="flex min-h-screen flex-col bg-background relative overflow-hidden"
       onPointerMove={(e) => {
-        updateMyPresence({ cursor: { x: Math.round(e.clientX), y: Math.round(e.clientY) } });
+        if (isMultiplayer) {
+          updateMyPresence({ cursor: { x: Math.round(e.clientX), y: Math.round(e.clientY) } });
+        }
       }}
       onPointerLeave={() => {
-        updateMyPresence({ cursor: null });
+        if (isMultiplayer) {
+          updateMyPresence({ cursor: null });
+        }
       }}
     >
-      <LiveCursors />
+      {isMultiplayer && <LiveCursors />}
       {/* Header */}
       <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3">
@@ -418,10 +430,25 @@ export function HomeContent() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="hidden bg-blue-500/10 text-blue-700 sm:inline-flex dark:text-blue-400 gap-1.5">
-              <Users className="size-3" />
-              {othersCount + 1} online
-            </Badge>
+            {isMultiplayer ? (
+              <>
+                <Badge variant="outline" className="hidden bg-blue-500/10 text-blue-700 sm:inline-flex dark:text-blue-400 gap-1.5 font-mono">
+                  Room: {roomCode}
+                </Badge>
+                <Badge variant="outline" className="hidden bg-emerald-500/10 text-emerald-700 sm:inline-flex dark:text-emerald-400 gap-1.5">
+                  <Users className="size-3" />
+                  {othersCount + 1} online
+                </Badge>
+                <Button variant="outline" size="sm" onClick={handleLeaveRoom} className="hidden sm:inline-flex">
+                  Leave
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setMultiplayerModalOpen(true)} className="hidden sm:inline-flex gap-2">
+                <Users className="size-4 text-emerald-500" />
+                Multiplayer
+              </Button>
+            )}
             <Badge
               variant="outline"
               className="hidden bg-emerald-500/10 text-emerald-700 sm:inline-flex dark:text-emerald-400"
@@ -624,20 +651,56 @@ export function HomeContent() {
           </p>
         </div>
       </footer>
+
+      {/* Modals */}
+      <MultiplayerModal 
+        open={multiplayerModalOpen} 
+        onOpenChange={setMultiplayerModalOpen} 
+      />
     </div>
+  );
+}
+
+function HomeWrapper() {
+  const searchParams = useSearchParams();
+  const roomCode = searchParams.get("room");
+  const isMultiplayer = !!roomCode;
+  
+  // Persistent solo room logic
+  const [soloRoomId, setSoloRoomId] = React.useState<string | null>(null);
+  
+  React.useEffect(() => {
+    let id = localStorage.getItem("discussly_solo_room");
+    if (!id) {
+      id = "solo-" + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem("discussly_solo_room", id);
+    }
+    setSoloRoomId(id);
+  }, []);
+
+  if (!isMultiplayer && !soloRoomId) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
+
+  const roomId = isMultiplayer ? `discussly-${roomCode}` : soloRoomId!;
+
+  return (
+    <RoomProvider 
+      id={roomId} 
+      initialPresence={{}} 
+      initialStorage={{ topic: null, timerEndAt: null, timerStatus: "idle", timerDurationSec: 180, timerRemainingSec: null, timerStarterId: null }}
+    >
+      <ClientSideSuspense fallback={<div className="flex min-h-screen items-center justify-center">Loading Room...</div>}>
+        <HomeContent isMultiplayer={isMultiplayer} roomCode={roomCode} />
+      </ClientSideSuspense>
+    </RoomProvider>
   );
 }
 
 export default function Home() {
   return (
-    <RoomProvider 
-      id="discussly-global-room" 
-      initialPresence={{}} 
-      initialStorage={{ topic: null, timerEndAt: null, timerStatus: "idle", timerDurationSec: 180, timerRemainingSec: null, timerStarterId: null }}
-    >
-      <ClientSideSuspense fallback={<div className="flex min-h-screen items-center justify-center">Loading Room...</div>}>
-        <HomeContent />
-      </ClientSideSuspense>
-    </RoomProvider>
+    <React.Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <HomeWrapper />
+    </React.Suspense>
   );
 }
