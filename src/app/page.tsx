@@ -644,7 +644,7 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
           <p>
             Built for better conversations ·{" "}
             <span className="font-medium text-foreground">Discussly</span>
-            {" "}· Powered by FGDC
+            {" "}· Powered by <a href="https://www.instagram.com/fgd.community/" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:underline">FGDC</a>
           </p>
           <p>
             {totalTopics} topics · {history.length} sessions logged
