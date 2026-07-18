@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+import fsPromises from "fs/promises";
 import ZAI from "z-ai-web-dev-sdk";
 
 export async function POST(req: Request) {
@@ -13,7 +14,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const zai = await ZAI.create();
+    let zai;
+    try {
+      const envApiKey = process.env.ZAI_API_KEY || process.env.NEXT_PUBLIC_ZAI_API_KEY;
+      if (!envApiKey) {
+        throw new Error("Missing ZAI_API_KEY environment variable in Vercel.");
+      }
+      
+      // Bypass ZAI.create() which strictly requires a local file and use the constructor directly
+      zai = new (ZAI as any)({
+        baseUrl: process.env.ZAI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai",
+        apiKey: envApiKey
+      });
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     
     const systemPrompt = 
       "You are a creative discussion topic generator. The user will provide a keyword or subject. " +
