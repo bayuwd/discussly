@@ -11,6 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CategoryIcon } from "@/components/discussion/category-ui";
 import { TopicDisplay } from "@/components/discussion/topic-display";
@@ -406,16 +414,50 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
           <div className="flex items-center gap-2">
             {isMultiplayer ? (
               <>
-                <Badge variant="outline" className="hidden bg-blue-500/10 text-blue-700 sm:inline-flex dark:text-blue-400 gap-1.5 font-mono">
-                  Room: {roomCode}
-                </Badge>
-                <Badge variant="outline" className="hidden bg-emerald-500/10 text-emerald-700 sm:inline-flex dark:text-emerald-400 gap-1.5">
-                  <Users className="size-3" />
-                  {othersCount + 1} online
-                </Badge>
-                <Button variant="outline" size="sm" onClick={handleLeaveRoom}>
-                  Leave
-                </Button>
+                {/* Desktop view */}
+                <div className="hidden sm:flex items-center gap-2">
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400 gap-1.5 font-mono">
+                    Room: {roomCode}
+                  </Badge>
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1.5">
+                    <Users className="size-3" />
+                    {othersCount + 1} online
+                  </Badge>
+                  <Button variant="outline" size="sm" onClick={handleLeaveRoom}>
+                    Leave
+                  </Button>
+                </div>
+
+                {/* Mobile view */}
+                <div className="sm:hidden">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1.5 px-2">
+                        <Users className="size-4 text-emerald-500" />
+                        <span className="font-medium">{othersCount + 1}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Multiplayer</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1.5 text-sm flex items-center justify-between">
+                        <span className="text-muted-foreground">Room</span>
+                        <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400">{roomCode}</code>
+                      </div>
+                      <div className="px-2 py-1.5 text-sm flex items-center justify-between">
+                        <span className="text-muted-foreground">Online</span>
+                        <span className="flex items-center gap-1.5">
+                          <Users className="size-3.5 text-emerald-500" />
+                          {othersCount + 1}
+                        </span>
+                      </div>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer" onClick={handleLeaveRoom}>
+                        Leave Room
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </>
             ) : (
               <Button variant="outline" size="sm" onClick={() => setMultiplayerModalOpen(true)} className="inline-flex gap-2">
