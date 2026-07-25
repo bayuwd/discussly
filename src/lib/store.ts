@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { Topic, CategoryId } from "@/lib/topics";
 
 export type TimerStatus = "idle" | "running" | "paused" | "finished";
@@ -18,7 +18,7 @@ interface SettingsState {
   toggleSound: () => void;
 }
 
-// Favourites + lightweight settings are kept client-side (localStorage) so
+// Favourites + lightweight settings are kept client-side (sessionStorage) so
 // they're instant and don't need a round-trip. Custom topics + history live
 // in the database via the API.
 export const useAppStore = create<FavoritesState & SettingsState>()(
@@ -38,7 +38,10 @@ export const useAppStore = create<FavoritesState & SettingsState>()(
       setDefaultDurationSec: (sec) => set({ defaultDurationSec: sec }),
       toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
     }),
-    { name: "discuss-timer-app" },
+    { 
+      name: "discuss-timer-app",
+      storage: createJSONStorage(() => sessionStorage)
+    },
   ),
 );
 

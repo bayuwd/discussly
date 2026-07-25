@@ -687,10 +687,10 @@ function HomeWrapper() {
   const [soloRoomId, setSoloRoomId] = React.useState<string | null>(null);
   
   React.useEffect(() => {
-    let id = localStorage.getItem("discussly_solo_room");
+    let id = sessionStorage.getItem("discussly_solo_room");
     if (!id) {
       id = "solo-" + Math.random().toString(36).substring(2, 10);
-      localStorage.setItem("discussly_solo_room", id);
+      sessionStorage.setItem("discussly_solo_room", id);
     }
     setSoloRoomId(id);
   }, []);
