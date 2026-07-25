@@ -33,7 +33,8 @@ export async function POST(req: Request) {
     
     const systemPrompt = 
       "You are a creative discussion topic generator. The user will provide a keyword or subject. " +
-      "Generate exactly ONE engaging, thought-provoking discussion question or topic based on it. " +
+      "Generate exactly ONE engaging discussion question or topic based on it. " +
+      "Make the topic simple, accessible, and easy to understand for a general audience. Avoid complex jargon or overly academic phrasing. " +
       "Return ONLY a valid JSON object with the following schema (do not include any markdown formatting like ```json):\n" +
       "{\n" +
       "  \"text\": \"The discussion topic text\",\n" +
