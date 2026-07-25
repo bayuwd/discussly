@@ -9,7 +9,8 @@ export type CategoryId =
   | "career"
   | "creative"
   | "ethics"
-  | "culture";
+  | "culture"
+  | "event";
 
 export interface CategoryMeta {
   id: CategoryId;
@@ -107,6 +108,16 @@ export const CATEGORIES: CategoryMeta[] = [
     border: "border-pink-500/30",
     dot: "bg-pink-500",
     icon: "Globe",
+  },
+  {
+    id: "event",
+    label: "Event",
+    description: "Sheep or Detective? Check First Before You Join the Fight",
+    text: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/30",
+    dot: "bg-blue-500",
+    icon: "ShieldAlert",
   },
 ];
 
@@ -399,6 +410,38 @@ const RAW_TOPICS: Record<CategoryId, string[]> = {
     "Should traditional dress be worn more often in daily life?",
     "What's a habit from another culture that would improve your life?",
     "How do you respectfully engage with a culture that isn't yours?",
+  ],
+  event: [
+    "Is it possible to completely avoid following the crowd, or are we all influenced by it?",
+    "Why is it so much easier to join an angry crowd than to stand against one?",
+    "Have you ever supported a cause just because your friends did, only to regret it later?",
+    "How do you tell the difference between people speaking up for a good reason and people just attacking someone unfairly?",
+    "Is 'cancel culture' just a modern way for angry crowds to attack people, or is it a good way to make people take responsibility?",
+    "When everyone around you agrees on a topic, do you feel pressured to agree too?",
+    "Should we always wait for all the facts before getting angry on social media?",
+    "How does being hidden on the internet make people more likely to attack others as a group?",
+    "Can someone be a 'detective' without becoming negative and untrusting of everyone?",
+    "Is it our duty to question what most people think, even if it feels uncomfortable?",
+    "Why do fake news and shocking stories spread faster than the boring truth?",
+    "What's the best way to check if a shocking story is true before you share it online?",
+    "Have you ever found yourself repeating an opinion you hadn't actually checked?",
+    "Does the fear of being left out stop us from saying what we really think?",
+    "How does social media push us to act like everyone else?",
+    "Is it really possible to think for yourself when the internet is always telling you what to think?",
+    "What happens when people care more about agreeing with their friends than caring about the actual truth?",
+    "Should there be punishments for joining an internet group that ruins an innocent person's life?",
+    "How do you handle it when a close friend shares fake news?",
+    "Why do people refuse to change their minds even when you show them proof they are wrong?",
+    "Is it cowardly to stay silent during a drama until you know all the facts?",
+    "How can we teach the next generation to think for themselves rather than just follow the crowd?",
+    "Does being very proud of your group make you judge people outside of it?",
+    "When is going against the crowd brave, and when is it just being annoying for no reason?",
+    "How do politicians and the media use the crowd's behavior to their advantage?",
+    "Have you ever changed your mind about a big issue after doing your own research?",
+    "Is 'common sense' sometimes just what everyone agrees to believe?",
+    "Why do feelings spread anger faster than facts and logic?",
+    "How do you know when you are only hearing people who agree with you, and how do you fix it?",
+    "If the crowd is always right, why do we look back at history and realize we were wrong so often?",
   ],
 };
 
