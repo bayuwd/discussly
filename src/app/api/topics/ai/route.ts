@@ -17,15 +17,16 @@ export async function POST(req: Request) {
     let zai;
     try {
       const envApiKey = process.env.ZAI_API_KEY || process.env.NEXT_PUBLIC_ZAI_API_KEY;
-      if (!envApiKey) {
-        throw new Error("Missing ZAI_API_KEY environment variable in Vercel.");
+      if (envApiKey) {
+        // Bypass ZAI.create() which strictly requires a local file and use the constructor directly
+        zai = new (ZAI as any)({
+          baseUrl: process.env.ZAI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai",
+          apiKey: envApiKey
+        });
+      } else {
+        // Fallback to local .z-ai-config file when running locally
+        zai = await ZAI.create();
       }
-      
-      // Bypass ZAI.create() which strictly requires a local file and use the constructor directly
-      zai = new (ZAI as any)({
-        baseUrl: process.env.ZAI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai",
-        apiKey: envApiKey
-      });
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
