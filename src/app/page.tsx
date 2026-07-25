@@ -687,12 +687,7 @@ function HomeWrapper() {
   const [soloRoomId, setSoloRoomId] = React.useState<string | null>(null);
   
   React.useEffect(() => {
-    let id = sessionStorage.getItem("discussly_solo_room");
-    if (!id) {
-      id = "solo-" + Math.random().toString(36).substring(2, 10);
-      sessionStorage.setItem("discussly_solo_room", id);
-    }
-    setSoloRoomId(id);
+    setSoloRoomId("solo-" + Math.random().toString(36).substring(2, 10));
   }, []);
 
   if (!isMultiplayer && !soloRoomId) {
