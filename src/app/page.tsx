@@ -492,10 +492,10 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
             </p>
           </section>
 
-          {/* Main Layout Grid */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
-            {/* Left Column (Primary Discussion Area) */}
-            <div className="lg:col-span-8 flex flex-col gap-6 min-w-0">
+          {/* Main Layout */}
+          <div className="flex flex-col gap-6 lg:gap-8">
+            {/* Top row: Topic Generator */}
+            <div className="w-full">
               <TopicDisplay
                 topic={currentTopic}
                 isGenerating={isGenerating}
@@ -510,67 +510,76 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
                 }
                 categories={rawCategories}
               />
-
-              <TimerPanel
-                timer={timer}
-                topic={currentTopic}
-                onSaveSession={saveSession}
-              />
-
             </div>
 
-            {/* Right Column (Side Panels) */}
-            <div className="lg:col-span-4 min-w-0">
-              <Card className="p-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
-                <Tabs value={tab} onValueChange={setTab} className="gap-3">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="pool">
-                      <Shuffle className="size-3.5" /> Pool
-                    </TabsTrigger>
-                    <TabsTrigger value="add">
-                      <Sparkles className="size-3.5" /> Add
-                    </TabsTrigger>
-                    <TabsTrigger value="history">
-                      <TimerIcon className="size-3.5" /> History
-                    </TabsTrigger>
-                  </TabsList>
+            {/* Bottom row: Timer & Pool */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+              {/* Timer (Left) */}
+              <div className="lg:col-span-8 min-w-0">
+                <TimerPanel
+                  timer={timer}
+                  topic={currentTopic}
+                  onSaveSession={saveSession}
+                />
+              </div>
 
-                  <TabsContent value="pool" className="p-3">
-                    <TopicPool
-                      customTopics={customTopics}
-                      onUseTopic={loadTopic}
-                      onDeleteCustom={deleteCustom}
-                      isFavorite={isFavorite}
-                      onToggleFavorite={onToggleFavorite}
-                      categories={rawCategories}
-                    />
-                  </TabsContent>
+              {/* Right Column (Side Panels) */}
+              <div className="lg:col-span-4 min-w-0 relative">
+                <div className="lg:absolute lg:inset-0">
+                  <Card className="p-2 lg:h-full flex flex-col">
+                    <Tabs value={tab} onValueChange={setTab} className="flex flex-col lg:flex-1 lg:min-h-0">
+                      <TabsList className="grid w-full grid-cols-3 shrink-0">
+                        <TabsTrigger value="pool">
+                          <Shuffle className="size-3.5" /> Pool
+                        </TabsTrigger>
+                        <TabsTrigger value="add">
+                          <Sparkles className="size-3.5" /> Add
+                        </TabsTrigger>
+                        <TabsTrigger value="history">
+                          <TimerIcon className="size-3.5" /> History
+                        </TabsTrigger>
+                      </TabsList>
 
-                  <TabsContent value="add" className="p-3">
-                    <AddTopicForm
-                      onAdd={addTopic}
-                      recentCount={customTopics.length}
-                      categories={rawCategories}
-                      onAddCategory={async (label) => {
-                        try {
-                          await addCategoryMutation.mutateAsync({ label });
-                          toast.success("Category added.");
-                        } catch (e) {
-                          toast.error(e instanceof Error ? e.message : "Couldn't add category.");
-                        }
-                      }}
-                    />
-                  </TabsContent>
+                      <div className="mt-3 lg:flex-1 lg:overflow-y-auto">
+                        <TabsContent value="pool" className="m-0 lg:h-full p-1">
+                          <TopicPool
+                            customTopics={customTopics}
+                            onUseTopic={loadTopic}
+                            onDeleteCustom={deleteCustom}
+                            isFavorite={isFavorite}
+                            onToggleFavorite={onToggleFavorite}
+                            categories={rawCategories}
+                          />
+                        </TabsContent>
 
-                  <TabsContent value="history" className="p-3">
-                    <HistoryPanel
-                      history={history}
-                      onClearAll={() => clearHistoryMutation.mutate()}
-                      onDelete={(id) => deleteHistoryMutation.mutate(id)}
-                    />
-                  </TabsContent>
-                </Tabs>
-              </Card>
+                        <TabsContent value="add" className="m-0 lg:h-full p-1">
+                          <AddTopicForm
+                            onAdd={addTopic}
+                            recentCount={customTopics.length}
+                            categories={rawCategories}
+                            onAddCategory={async (label) => {
+                              try {
+                                await addCategoryMutation.mutateAsync({ label });
+                                toast.success("Category added.");
+                              } catch (e) {
+                                toast.error(e instanceof Error ? e.message : "Couldn't add category.");
+                              }
+                            }}
+                          />
+                        </TabsContent>
+
+                        <TabsContent value="history" className="m-0 lg:h-full p-1">
+                          <HistoryPanel
+                            history={history}
+                            onClearAll={() => clearHistoryMutation.mutate()}
+                            onDelete={(id) => deleteHistoryMutation.mutate(id)}
+                          />
+                        </TabsContent>
+                      </div>
+                    </Tabs>
+                  </Card>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -646,7 +655,7 @@ function HomeWrapper() {
     <RoomProvider 
       id={roomId} 
       initialPresence={{}} 
-      initialStorage={{ topic: null, timerEndAt: null, timerStatus: "idle", timerDurationSec: 180, timerRemainingSec: null, timerStarterId: null }}
+      initialStorage={{ topic: null, timerEndAt: null, timerStatus: "idle", timerDurationSec: 60, timerRemainingSec: null, timerStarterId: null }}
     >
       <ClientSideSuspense fallback={<div className="flex min-h-screen items-center justify-center">Loading Room...</div>}>
         <HomeContent isMultiplayer={isMultiplayer} roomCode={roomCode} />

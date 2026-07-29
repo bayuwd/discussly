@@ -33,7 +33,7 @@ export const useAppStore = create<FavoritesState & SettingsState>()(
         })),
       isFavorite: (id) => get().favorites.includes(id),
 
-      defaultDurationSec: 180,
+      defaultDurationSec: 60,
       soundEnabled: true,
       setDefaultDurationSec: (sec) => set({ defaultDurationSec: sec }),
       toggleSound: () => set((s) => ({ soundEnabled: !s.soundEnabled })),
