@@ -517,60 +517,6 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
                 onSaveSession={saveSession}
               />
 
-              {/* Category stats */}
-              <Card className="p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">Topic library</p>
-                    <p className="text-xs text-muted-foreground">
-                      Tap a category to filter the generator
-                    </p>
-                  </div>
-                  <Badge variant="secondary">
-                    {PREBUILT_TOPICS.length} curated + {customTopics.length}{" "}
-                    custom
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {rawCategories.map((c) => {
-                    const stat = categoryStats.find((s) => s.id === c.id);
-                    const total = stat?.total ?? 0;
-                    const active = randomCategory === c.id;
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() =>
-                          setRandomCategory(active ? "all" : (c.id as CategoryId))
-                        }
-                        className={cn(
-                          "flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all hover:shadow-sm",
-                          active
-                            ? cn(c.border, c.bg, "ring-2 ring-emerald-500/30")
-                            : "border-border hover:bg-accent/40",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "inline-flex size-8 items-center justify-center rounded-lg",
-                            c.bg,
-                            c.text,
-                          )}
-                        >
-                          <CategoryIcon name={c.icon} className="size-4" />
-                        </span>
-                        <span className="text-xs font-semibold">{c.label}</span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {total} topics
-                          {stat && stat.customCount > 0
-                            ? ` · ${stat.customCount} yours`
-                            : ""}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </Card>
             </div>
 
             {/* Right Column (Side Panels) */}

@@ -22,6 +22,25 @@ interface Options {
   onComplete: () => void;
 }
 
+// Global AudioContext to avoid autoplay restrictions by resuming it on user interaction
+let globalAudioCtx: AudioContext | null = null;
+
+function initAudio() {
+  if (typeof window === "undefined") return;
+  if (!globalAudioCtx) {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (AudioCtx) {
+      globalAudioCtx = new AudioCtx();
+    }
+  }
+  if (globalAudioCtx && globalAudioCtx.state === "suspended") {
+    globalAudioCtx.resume().catch(() => {});
+  }
+}
+
 export function useDiscussionTimer({
   onComplete,
 }: Options): DiscussionTimerApi {
@@ -86,6 +105,7 @@ export function useDiscussionTimer({
 
   // Mutations to update shared state
   const start = useMutation(({ storage, self }: any) => {
+    initAudio();
     const currentStatus = storage.get("timerStatus");
     if (currentStatus === "finished") return;
 
@@ -117,6 +137,7 @@ export function useDiscussionTimer({
   }, []);
 
   const setDurationSec = useMutation(({ storage }: any, sec: number) => {
+    initAudio();
     const next = Math.max(10, Math.min(3600, Math.floor(sec)));
     storage.set("timerStatus", "idle");
     storage.set("timerEndAt", null);
@@ -125,6 +146,7 @@ export function useDiscussionTimer({
   }, []);
 
   const finishNow = useMutation(({ storage, self }: any) => {
+    initAudio();
     storage.set("timerStatus", "finished");
     storage.set("timerEndAt", null);
     storage.set("timerRemainingSec", 0);
@@ -137,16 +159,14 @@ export function useDiscussionTimer({
     if (!soundEnabled) return;
     if (typeof window === "undefined") return;
     try {
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      const ctx = new AudioCtx();
-      const now = ctx.currentTime;
+      initAudio();
+      if (!globalAudioCtx) return;
+      
+      const now = globalAudioCtx.currentTime;
       const notes = [880, 880, 1320];
       notes.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const osc = globalAudioCtx!.createOscillator();
+        const gain = globalAudioCtx!.createGain();
         osc.type = "sine";
         osc.frequency.value = freq;
         const start = now + i * 0.25;
@@ -154,11 +174,10 @@ export function useDiscussionTimer({
         gain.gain.exponentialRampToValueAtTime(0.3, start + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(globalAudioCtx!.destination);
         osc.start(start);
         osc.stop(start + 0.22);
       });
-      setTimeout(() => ctx.close(), 1200);
     } catch {
       // Audio not available — silently ignore.
     }
