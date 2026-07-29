@@ -32,8 +32,9 @@ export async function POST(req: Request) {
     }
     
     const systemPrompt = 
-      "You are a creative discussion topic generator. The user will provide a keyword or subject. " +
-      "Generate exactly ONE engaging discussion question or topic based on it. " +
+      "You are a highly creative discussion topic generator. The user will provide a keyword or subject. " +
+      "Generate exactly ONE highly unique, engaging, and thought-provoking discussion question or topic based on it. " +
+      "Think outside the box and provide diverse perspectives. " +
       "Make the topic simple, accessible, and easy to understand for a general audience. Avoid complex jargon or overly academic phrasing. " +
       "Return ONLY a valid JSON object with the following schema (do not include any markdown formatting like ```json):\n" +
       "{\n" +
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
 
       response = await zai.chat.completions.create({
         model: "gemini-flash-latest",
+        temperature: 1.5,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: prompt }

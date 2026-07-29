@@ -90,7 +90,7 @@ export function TopicDisplay({
           </div>
         </div>
 
-        <div className="min-h-[180px] sm:min-h-[200px]">
+        <div className="flex flex-col flex-1 min-h-[180px] sm:min-h-[200px] justify-center">
           <AnimatePresence mode="wait">
             {topic ? (
               <motion.div
@@ -99,9 +99,9 @@ export function TopicDisplay({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
-                className="flex h-full w-full flex-col justify-center gap-4 overflow-hidden"
+                className="flex h-full w-full flex-col items-center justify-center text-center gap-4 overflow-hidden"
               >
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-2">
                   <CategoryBadge category={topic.category} />
                   <span
                     className={cn(
@@ -133,7 +133,7 @@ export function TopicDisplay({
                     </div>
                   )}
                 </div>
-                <blockquote className="text-pretty text-xl sm:text-2xl font-semibold leading-snug break-words whitespace-pre-wrap max-w-full">
+                <blockquote className="text-center text-pretty text-2xl sm:text-4xl font-semibold leading-tight break-words whitespace-pre-wrap max-w-full">
                   &ldquo;{topic.text}&rdquo;
                 </blockquote>
               </motion.div>

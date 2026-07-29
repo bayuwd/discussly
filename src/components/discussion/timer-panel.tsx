@@ -248,8 +248,8 @@ export function TimerPanel({ timer, topic, onSaveSession }: TimerPanelProps) {
         <div className="flex flex-wrap items-center justify-center gap-2 border-t pt-4">
           <span className="text-xs text-muted-foreground">Discussing:</span>
           <CategoryBadge category={topic.category} />
-          <Badge variant="outline" className="max-w-full truncate">
-            <span className="truncate">{topic.text}</span>
+          <Badge variant="outline" className="max-w-full whitespace-normal text-center font-normal leading-snug">
+            <span>{topic.text}</span>
           </Badge>
         </div>
       )}
