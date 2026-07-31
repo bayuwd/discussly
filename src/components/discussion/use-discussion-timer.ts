@@ -199,17 +199,21 @@ export function useDiscussionTimer({
       if (!globalAudioCtx) return;
       
       const now = globalAudioCtx.currentTime;
-      const osc = globalAudioCtx!.createOscillator();
-      const gain = globalAudioCtx!.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 660; // E5
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.3, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
-      osc.connect(gain);
-      gain.connect(globalAudioCtx!.destination);
-      osc.start(now);
-      osc.stop(now + 0.16);
+      const notes = [523.25, 783.99]; // C5 to G5 rising
+      notes.forEach((freq, i) => {
+        const osc = globalAudioCtx!.createOscillator();
+        const gain = globalAudioCtx!.createGain();
+        osc.type = "triangle"; // louder than sine, less harsh than square
+        osc.frequency.value = freq;
+        const start = now + i * 0.15;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.8, start + 0.02); // Louder
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.12);
+        osc.connect(gain);
+        gain.connect(globalAudioCtx!.destination);
+        osc.start(start);
+        osc.stop(start + 0.15);
+      });
     } catch {
       // Audio not available — silently ignore.
     }

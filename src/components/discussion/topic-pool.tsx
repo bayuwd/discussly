@@ -76,40 +76,42 @@ export function TopicPool({
             className="pl-8"
           />
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-          <p className="text-xs text-muted-foreground whitespace-nowrap">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+          <p className="text-xs text-muted-foreground whitespace-nowrap w-full sm:w-auto mb-1 sm:mb-0">
             {filtered.length} of {all.length} topics
           </p>
-          <Select
-            value={category}
-            onValueChange={(v) => setCategory(v as CategoryId | "all")}
-          >
-            <SelectTrigger size="sm" className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={spiciness.toString()}
-            onValueChange={(v) => setSpiciness(v === "all" ? "all" : parseInt(v, 10))}
-          >
-            <SelectTrigger size="sm" className="w-[140px]">
-              <SelectValue placeholder="Any spiciness" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">🌶️ Any level</SelectItem>
-              <SelectItem value="1">🌶️ Level 1</SelectItem>
-              <SelectItem value="2">🌶️🌶️ Level 2</SelectItem>
-              <SelectItem value="3">🌶️🌶️🌶️ Level 3</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+            <Select
+              value={category}
+              onValueChange={(v) => setCategory(v as CategoryId | "all")}
+            >
+              <SelectTrigger size="sm" className="flex-1 sm:flex-none sm:w-[150px] min-w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={spiciness.toString()}
+              onValueChange={(v) => setSpiciness(v === "all" ? "all" : parseInt(v, 10))}
+            >
+              <SelectTrigger size="sm" className="flex-1 sm:flex-none sm:w-[130px] min-w-[110px]">
+                <SelectValue placeholder="Any spiciness" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">🌶️ Any level</SelectItem>
+                <SelectItem value="1">🌶️ Level 1</SelectItem>
+                <SelectItem value="2">🌶️🌶️ Level 2</SelectItem>
+                <SelectItem value="3">🌶️🌶️🌶️ Level 3</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
