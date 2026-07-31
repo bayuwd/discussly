@@ -67,6 +67,7 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [isAIGenerating, setIsAIGenerating] = React.useState(false);
   const [randomCategory, setRandomCategory] = React.useState<CategoryId | "all">("all");
+  const [randomSpiciness, setRandomSpiciness] = React.useState<number | "all">("all");
   const [tab, setTab] = React.useState("pool");
   const [customTopics, setCustomTopics] = React.useState<Topic[]>([]);
 
@@ -208,6 +209,9 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
       if (randomCategory !== "all") {
         pool = pool.filter(t => t.category === randomCategory);
       }
+      if (randomSpiciness !== "all") {
+        pool = pool.filter(t => t.spiciness === randomSpiciness);
+      }
       
       if (pool.length === 0) {
         throw new Error("No topics available in this category.");
@@ -229,7 +233,7 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
     } finally {
       setIsGenerating(false);
     }
-  }, [currentTopic, randomCategory, customTopics]);
+  }, [currentTopic, randomCategory, randomSpiciness, customTopics]);
 
   const generateAITopic = React.useCallback(async (prompt: string) => {
     // Save an in-flight session before switching topics.
@@ -504,6 +508,8 @@ export function HomeContent({ isMultiplayer, roomCode }: { isMultiplayer: boolea
                 onGenerateAI={(prompt) => void generateAITopic(prompt)}
                 randomCategory={randomCategory}
                 onRandomCategoryChange={setRandomCategory}
+                randomSpiciness={randomSpiciness}
+                onRandomSpicinessChange={setRandomSpiciness}
                 isFavorite={currentTopic ? isFavorite(currentTopic.id) : false}
                 onToggleFavorite={() =>
                   currentTopic && onToggleFavorite(currentTopic.id)

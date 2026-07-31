@@ -61,10 +61,17 @@ export function useDiscussionTimer({
   
   const completedRef = React.useRef(false);
   const onCompleteRef = React.useRef(onComplete);
+  const prevStatus = React.useRef<TimerStatus>(status);
   
   React.useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  const handleNaturalFinish = useMutation(({ storage }: any) => {
+    storage.set("timerStatus", "finished");
+    storage.set("timerEndAt", null);
+    storage.set("timerRemainingSec", 0);
+  }, []);
 
   // Handle local ticking when status is running
   React.useEffect(() => {
@@ -82,6 +89,7 @@ export function useDiscussionTimer({
           // Other clients will still hear the beep (via useEffect below).
           if (self?.connectionId === timerStarterId) {
              onCompleteRef.current();
+             handleNaturalFinish();
           }
         }
       };
@@ -101,7 +109,7 @@ export function useDiscussionTimer({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [status, endAt, durationSec, timerRemainingSec, self?.connectionId, timerStarterId]);
+  }, [status, endAt, durationSec, timerRemainingSec, self?.connectionId, timerStarterId, handleNaturalFinish]);
 
   // Mutations to update shared state
   const start = useMutation(({ storage, self }: any) => {
@@ -163,15 +171,15 @@ export function useDiscussionTimer({
       if (!globalAudioCtx) return;
       
       const now = globalAudioCtx.currentTime;
-      const notes = [880, 880, 1320];
+      const notes = [880, 880, 1320, 1320, 1760]; // More alarming notes
       notes.forEach((freq, i) => {
         const osc = globalAudioCtx!.createOscillator();
         const gain = globalAudioCtx!.createGain();
-        osc.type = "sine";
+        osc.type = "square"; // louder, harsher waveform
         osc.frequency.value = freq;
         const start = now + i * 0.25;
         gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.3, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.8, start + 0.02); // Much louder (was 0.3)
         gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
         osc.connect(gain);
         gain.connect(globalAudioCtx!.destination);
@@ -183,11 +191,39 @@ export function useDiscussionTimer({
     }
   }, [soundEnabled]);
 
+  const playStartSound = React.useCallback(() => {
+    if (!soundEnabled) return;
+    if (typeof window === "undefined") return;
+    try {
+      initAudio();
+      if (!globalAudioCtx) return;
+      
+      const now = globalAudioCtx.currentTime;
+      const osc = globalAudioCtx!.createOscillator();
+      const gain = globalAudioCtx!.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 660; // E5
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.3, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+      osc.connect(gain);
+      gain.connect(globalAudioCtx!.destination);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } catch {
+      // Audio not available — silently ignore.
+    }
+  }, [soundEnabled]);
+
   React.useEffect(() => {
-    if (status === "finished") {
+    if (status === "finished" && prevStatus.current !== "finished") {
       playBeep();
     }
-  }, [status, playBeep]);
+    if (status === "running" && prevStatus.current !== "running") {
+      playStartSound();
+    }
+    prevStatus.current = status;
+  }, [status, playBeep, playStartSound]);
 
   const elapsedSec = Math.max(0, durationSec - localRemainingSec);
   const progress = durationSec > 0 ? elapsedSec / durationSec : 0;

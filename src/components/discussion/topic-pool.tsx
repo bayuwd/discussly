@@ -37,6 +37,7 @@ export function TopicPool({
 }: TopicPoolProps) {
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<CategoryId | "all">("all");
+  const [spiciness, setSpiciness] = React.useState<number | "all">("all");
 
   const [page, setPage] = React.useState(1);
   const ITEMS_PER_PAGE = 5;
@@ -50,14 +51,15 @@ export function TopicPool({
     const q = query.trim().toLowerCase();
     return all.filter((t) => {
       if (category !== "all" && t.category !== category) return false;
+      if (spiciness !== "all" && t.spiciness !== spiciness) return false;
       if (q && !t.text.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [all, query, category]);
+  }, [all, query, category, spiciness]);
 
   React.useEffect(() => {
     setPage(1);
-  }, [query, category]);
+  }, [query, category, spiciness]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -92,6 +94,20 @@ export function TopicPool({
                   {c.label}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={spiciness.toString()}
+            onValueChange={(v) => setSpiciness(v === "all" ? "all" : parseInt(v, 10))}
+          >
+            <SelectTrigger size="sm" className="w-[140px]">
+              <SelectValue placeholder="Any spiciness" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">🌶️ Any level</SelectItem>
+              <SelectItem value="1">🌶️ Level 1</SelectItem>
+              <SelectItem value="2">🌶️🌶️ Level 2</SelectItem>
+              <SelectItem value="3">🌶️🌶️🌶️ Level 3</SelectItem>
             </SelectContent>
           </Select>
         </div>

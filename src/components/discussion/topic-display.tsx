@@ -27,6 +27,8 @@ interface TopicDisplayProps {
   onGenerateAI: (prompt: string) => void;
   randomCategory: CategoryId | "all";
   onRandomCategoryChange: (v: CategoryId | "all") => void;
+  randomSpiciness: number | "all";
+  onRandomSpicinessChange: (v: number | "all") => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
   categories: any[];
@@ -40,6 +42,8 @@ export function TopicDisplay({
   onGenerateAI,
   randomCategory,
   onRandomCategoryChange,
+  randomSpiciness,
+  onRandomSpicinessChange,
   isFavorite,
   onToggleFavorite,
   categories,
@@ -85,6 +89,23 @@ export function TopicDisplay({
                     {c.label}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={randomSpiciness.toString()}
+              onValueChange={(v) =>
+                onRandomSpicinessChange(v === "all" ? "all" : parseInt(v, 10))
+              }
+            >
+              <SelectTrigger size="sm" className="w-[140px]">
+                <SelectValue placeholder="Any spiciness" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">🌶️ Any level</SelectItem>
+                <SelectItem value="1">🌶️ Level 1</SelectItem>
+                <SelectItem value="2">🌶️🌶️ Level 2</SelectItem>
+                <SelectItem value="3">🌶️🌶️🌶️ Level 3</SelectItem>
               </SelectContent>
             </Select>
           </div>
